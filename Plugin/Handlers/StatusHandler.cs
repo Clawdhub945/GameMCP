@@ -54,11 +54,22 @@ public static class StatusHandler
             }
             catch { }
 
+            // 判断游戏阶段 (更明确的状态)
+            string gameState = "unknown";
+            if (!gameLoaded)
+                gameState = "not_loaded";
+            else if (!inGame)
+                gameState = "title_screen";
+            else if (itemCount > 0 && buildingCount > 0)
+                gameState = "world_active";
+            else
+                gameState = "loading";
+
             return HttpServer.Ok(new
             {
                 status = "ok",
                 plugin_version = GameMCPPlugin.PLUGIN_VERSION,
-                game_loaded = gameLoaded,
+                game_state = gameState,
                 in_game = inGame,
                 scene = sceneName,
                 registry = new
