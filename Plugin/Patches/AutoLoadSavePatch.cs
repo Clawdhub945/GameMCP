@@ -148,44 +148,64 @@ public static class AutoLoadSavePatch
             // 设置 IL2CPP 字段
             SetIl2CppStringField(_autoLoadFieldPtr, folderName!);
 
-            // 直接调用 UI.StartGame (如果有这个方法)
+            // 延迟调用 UI.StartGame — UI.Start 阶段游戏还没完全初始化,
+            // 必须等 UI.Start 完成后再调用。通过 MainThreadDispatcher 在主线程执行。
+            var capturedFolder = folderName!;
             var uiType = __instance.GetType();
             var startGame = uiType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 .FirstOrDefault(m => m.Name == "StartGame");
             if (startGame != null)
             {
-                try
+                var parms = startGame.GetParameters();
+                GameMCPPlugin.LogInfo($"UIStart: 延迟调用 UI.StartGame({capturedFolder}), 参数: {string.Join(",", parms.Select(p => p.ParameterType.Name))}");
+
+                // 用后台线程等待 3 秒，然后通过 MainThreadDispatcher 在主线程执行
+                new System.Threading.Thread(() =>
                 {
-                    var parms = startGame.GetParameters();
-                    if (parms.Length == 1 && parms[0].ParameterType == typeof(string))
+                    try
                     {
-                        startGame.Invoke(__instance, new object[] { folderName! });
-                        GameMCPPlugin.LogInfo($"UIStart: 直接调用 UI.StartGame({folderName})");
+                        System.Threading.Thread.Sleep(3000);
+
+                        MainThreadDispatcher.ExecuteOnMainThread(() =>
+                        {
+                            try
+                            {
+                                var insProp = uiType.GetProperty("Ins", BindingFlags.Public | BindingFlags.Static);
+                                var uiIns = insProp?.GetValue(null);
+                                if (uiIns == null)
+                                {
+                                    var insField = uiType.GetField("Ins", BindingFlags.Public | BindingFlags.Static);
+                                    uiIns = insField?.GetValue(null);
+                                }
+                                if (uiIns == null)
+                                    return HttpServer.Error("UI.Ins 不可用");
+
+                                if (parms.Length == 2)
+                                    startGame.Invoke(uiIns, new object[] { capturedFolder, null! });
+                                else if (parms.Length == 1)
+                                    startGame.Invoke(uiIns, new object[] { capturedFolder });
+                                else
+                                    startGame.Invoke(uiIns, null);
+
+                                GameMCPPlugin.LogInfo($"UIStart: 延迟调用 UI.StartGame({capturedFolder}) 完成");
+                                return HttpServer.Ok(new { status = "ok" });
+                            }
+                            catch (Exception ex)
+                            {
+                                GameMCPPlugin.LogError($"UIStart: 延迟调用失败: {ex.Message} | {ex.InnerException?.Message}");
+                                return HttpServer.Error(ex.Message);
+                            }
+                        });
                     }
-                    else if (parms.Length == 0)
+                    catch (Exception ex)
                     {
-                        startGame.Invoke(__instance, null);
-                        GameMCPPlugin.LogInfo("UIStart: 直接调用 UI.StartGame()");
+                        GameMCPPlugin.LogError($"UIStart: 延迟线程异常: {ex.Message}");
                     }
-                    else if (parms.Length == 2)
-                    {
-                        // UI.StartGame(string archive_folder_name, EmpireVillageProgram program)
-                        startGame.Invoke(__instance, new object[] { folderName!, null! });
-                        GameMCPPlugin.LogInfo($"UIStart: 调用 UI.StartGame({folderName}, null)");
-                    }
-                    else
-                    {
-                        GameMCPPlugin.LogInfo($"UIStart: UI.StartGame 参数: {string.Join(",", parms.Select(p => p.ParameterType.Name))}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    GameMCPPlugin.LogError($"UIStart: UI.StartGame 调用失败: {ex.Message} | {ex.InnerException?.Message}");
-                }
+                }) { IsBackground = true, Name = "GameMCP_DelayedStart" }.Start();
             }
             else
             {
-                GameMCPPlugin.LogInfo("UIStart: UI.StartGame 方法不存在, 设置字段等待 UI.Start 自动处理");
+                GameMCPPlugin.LogInfo("UIStart: UI.StartGame 方法不存在");
             }
 
             PendingSaveFolder = null;
