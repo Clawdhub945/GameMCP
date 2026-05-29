@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>GameMCPPlugin</AssemblyName>
+    <RootNamespace>GameMCP</RootNamespace>
+    <LangVersion>10.0</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="BepInEx.Core">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Territory\BepInEx\core\BepInEx.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="BepInEx.Unity.IL2CPP">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Territory\BepInEx\core\BepInEx.Unity.IL2CPP.dll</HintPath>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Territory\BepInEx\core\0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="Il2CppInterop.Runtime">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Territory\BepInEx\core\Il2CppInterop.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Il2Cppmscorlib">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Territory\BepInEx\interop\Il2Cppmscorlib.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Territory\BepInEx\interop\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Territory\BepInEx\interop\Assembly-CSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
